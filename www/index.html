@@ -12,7 +12,61 @@ a:visited { color : #000000; }
 -->
 </style>
         <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="lib/jquery-ui-1.8.19.custom.css" />
+        <link rel="stylesheet" type="text/css" href="lib/ui.jqgrid.css" />
+        <script src="lib/mqttws31.js"></script>
+        <script src="TopicSubscriber_ws2.js" charset="UTF-8"></script>
+        <script type="text/javascript" src="lib/jquery-1.7.2.min.js"></script>
+        <script type="text/javascript" src="lib/jquery-ui-1.8.19.custom.min.js"></script>
+        <script type="text/javascript" src="lib/jquery.jqGrid.min.js" ></script>
+
         <script type="text/javascript" charset="utf-8">
+    jQuery(document).ready(function()
+    {
+        jQuery("#list").jqGrid(
+        {
+        //data: mydata,
+        datatype: "local",
+        colNames:['項番', 'タイトル', '発行官署', '日時'],
+        colModel:[
+            {
+              index    : 'id',
+             name     : 'id',
+             sorttype : 'int',
+             width: 50
+            },
+            {
+            index    : 'titile',
+            name     : 'title',
+            sorttype : 'str',
+            width: 250
+            },
+            {
+            index    : 'puboffice',
+            name     : 'puboffice',
+            sorttype : 'str',
+            width: 200
+            },
+            {
+            index    : 'dtime',
+            name     : 'dtime',
+            sorttype : 'str',
+            width: 150
+            },
+        ],
+        height      : 'auto',
+        width       : 650,
+        //height      : 250,
+        rowNum      : 10,
+        rowList     : [10,20,30],
+        scroll      : true,
+        sortname    : 'id',
+        sortorder   : "ASC",
+        multiselect : false,
+        caption     : '受信電文一覧'
+        });  
+    });
 
 var image_name;
 
@@ -44,6 +98,12 @@ function onBackKeyDown() {
  * 登録
  */
 function netatmo_oauth() {
+    
+    //solace
+    var subscriber = new TopicSubscriber('Weather/T/JP/+/JPOS');
+    subscriber.connect();
+    document.getElementById("subscribe").addEventListener("click", subscriber.subscribe);
+
     var netatmo_oauth_url = "https://api.netatmo.net/oauth2/token";
     
     //接続するための情報
@@ -233,8 +293,9 @@ function insertRow(menu,menu_url,shop,shop_url) {
     var cell1 = row.insertCell(-1);
     var cell2 = row.insertCell(-1);
     // ボタン用 HTML
-    var menu_link = "<a href='"+menu_url+"'>"+menu+"</a>";
-    var shop_link = "<a href='"+shop_url+"'>"+shop+"</a>";
+//    var menu_link = "<img src='"+menu_url+"'>"+menu+"</a>"; 
+    var menu_link = "<a href='"+shop_url+"'><img src='"+menu_url+"' style='width:100%;'></a>";
+    var shop_link = "<a href='"+shop_url+"'>"+menu+"</a>";
  
     // 行数取得
     var row_len = table.rows.length;
@@ -315,6 +376,9 @@ function today_weather_long_sound(){
     dynamic_sound(ai_url);
 }
 
+function log_disp_on(){
+    document.getElementById("log").setAttribute("style", "display : inline;");
+}
 </script>
 </head>
     <body onLoad="netatmo_oauth();">
@@ -346,6 +410,13 @@ function today_weather_long_sound(){
 <audio id="nani" preload="auto">
     <source src="naniku.ogg" type="audio/ogg">
 </audio>
-
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<input type = "hidden" id = "host" value = "52.192.31.73" />
+<input type = "hidden" id = "topic" value = "Weather/T/JP/+/JPOS" />
+        <textarea id="log" rows="20" cols="90" style="width:100%;display : none;"></textarea>
+        <table id="list">
+        </table>
+<button id="subscribe" onClick="log_disp_on();">詳細な気象情報を取得する。</button>
+    
 </body>
 </html>

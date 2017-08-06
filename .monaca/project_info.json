@@ -11,7 +11,7 @@
         "cordova-plugin-splashscreen@4.0.3",
         "cordova-custom-config@2.0.3"
     ],
-    "title-ja": "ハルカス",
+    "title-ja": "なにくぅ？",
     "title-en": "",
     "description-ja": "",
     "description-en": "",
@@ -20,5 +20,5 @@
         "android",
         "ios"
     ],
-    "name": "generated-1501979312-598541fc013eb063593496aa"
+    "name": "generated-1501999949-598541fc013eb063593496aa"
 }
