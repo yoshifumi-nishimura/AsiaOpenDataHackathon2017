@@ -1,0 +1,351 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="components/loader.js"></script>
+        <link rel="stylesheet" href="components/loader.css">
+<style type="text/css">
+<!--
+a { text-decoration:none; }
+a:link { color : #000000; }
+a:visited { color : #000000; }
+-->
+</style>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+
+var image_name;
+
+function getPath(){
+             var str = location.pathname;
+             var i = str.lastIndexOf('/');
+             return str.substring(0,i+1);
+         }
+
+function onSuccess() {
+              console.log("playAudio():Audio Success");
+}
+
+
+function onError(error) {
+            alert('code: '    + error.code    + '\n' +
+                  'message: ' + error.message + '\n');
+}
+
+/*
+ * 戻るボタン
+ */
+function onBackKeyDown() {
+    stopAccelerometer();
+    setTimeout('navigator.app.exitApp()',1000);
+}
+
+/*
+ * 登録
+ */
+function netatmo_oauth() {
+    var netatmo_oauth_url = "https://api.netatmo.net/oauth2/token";
+    
+    //接続するための情報
+    var postdata = {
+                    "grant_type" : "password",
+                    "client_id" : "59853e51ac34a516928b4c54",
+                    "client_secret" : "X3OSEXH8lvbGEN0w0Cv4ZksXCVul",
+                    "username" : "xxxxxxxxxxxxxxxxxx",
+                    "password" : "xxxxxxxxxxxxxxxxxx",
+                    "scope" : "read_station"
+                };
+
+            $.ajax({
+                type : 'post',
+                url : netatmo_oauth_url,
+                data : postdata,
+                dataType : 'JSON',
+                scriptCharset: 'utf-8',
+                success : function(data) {
+
+//console.log(JSON.stringify(data));
+                var oauth=JSON.parse(JSON.stringify(data));
+                //アクセストークンを取得する
+                netatmo_getdata(oauth["access_token"]);
+$("#response").html(JSON.stringify(data));
+                },
+                error : function(data) {
+
+                    // Error
+                    alert("error");
+                    alert(JSON.stringify(data));
+                    $("#response").html(JSON.stringify(data));
+                }
+            });
+}
+
+function netatmo_getdata(access_token) {
+    var netatmo_getdata_url = "https://api.netatmo.net/api/getstationsdata";
+
+    //アクセストークンとデバイスIDをセットする
+    var postdata2 = {
+                    "access_token" : access_token,
+                    "device_id" : "70:ee:50:02:36:a2"
+                };
+
+            $.ajax({
+                type : 'post',
+                url : netatmo_getdata_url,
+                data : postdata2,
+                dataType : 'JSON',
+                scriptCharset: 'utf-8',
+                success : function(data) {
+
+                var getdata=JSON.parse(JSON.stringify(data));
+//取得した気温・湿度をセットする
+document.getElementById("kion").textContent = "現在の気温： "+getdata["body"]["devices"][0]["dashboard_data"]["Temperature"]+" ℃";
+document.getElementById("shitsudo").textContent = "現在の湿度： "+getdata["body"]["devices"][0]["dashboard_data"]["Humidity"]+" ％";
+document.getElementById('now_kion').value=getdata["body"]["devices"][0]["dashboard_data"]["Temperature"];
+document.getElementById('now_shitsudo').value=getdata["body"]["devices"][0]["dashboard_data"]["Humidity"];
+
+//すっきゃねん
+love_sound();
+
+//天気予報取得
+get_weather()
+
+$("#response").html(JSON.stringify(data));
+                },
+                error : function(data) {
+
+                    // Error
+                    alert("error");
+                    alert(JSON.stringify(data));
+                    $("#response").html(JSON.stringify(data));
+                }
+            });
+}
+
+function attachMessage(marker, msg) {
+    google.maps.event.addListener(marker, 'click', function(event) {
+      new google.maps.InfoWindow({
+        content: msg
+      }).open(marker.getMap(), marker);
+    });
+  }
+
+//処理を実行するかのフラグ
+var kintone_call_flg = 0;
+
+function get_date_kintone() {
+    //値を取得
+    var kion = document.getElementById("now_kion").value;
+    var shitsudo = document.getElementById("now_shitsudo").value;
+    //一度実行したら、二度実行しないようにする。
+    //また、気温が0の場合も実行しない
+    if ( kintone_call_flg == 0 && kion != 0){
+        //なにくぅ？
+        nani_sound();
+
+        var kion_high = parseInt(kion) + 1;
+        var kion_low = parseInt(kion) - 1;
+        var shitsudo_high = parseInt(shitsudo) + 5;
+        var shitsudo_low = parseInt(shitsudo) - 5;
+        var sql = "kion%20%3e%3d%20"+kion_low+"%20and%20kion%20%3c%3d%20"+kion_high+"%20and%20shitsudo%20%3e%3d%20"+shitsudo_low+"%20and%20shitsudo%20%3c%3d%20"+shitsudo_high;
+        var kintone_url = "https://h2qyd.cybozu.com/k/v1/records.json?app=12&fields=menu,menu_url,shop,shop_url&query="+sql;
+    
+                $.ajax({
+                    type : 'get',
+                    url : kintone_url,
+                    headers : {'X-Cybozu-API-Token': 'KDd56izq6bjcItAvdSAxpCHBiCclurvsCXGgYBBO'},
+                    dataType : 'JSON',
+                    scriptCharset: 'utf-8',
+                    success : function(data) {
+    
+//        console.log(JSON.stringify(data));
+                    var getdata=JSON.parse(JSON.stringify(data));
+    
+          for( var i=0 ; i<getdata["records"].length ; i++ ) {
+    		  insertRow(getdata["records"][i]["menu"]["value"],getdata["records"][i]["menu_url"]["value"],getdata["records"][i]["shop"]["value"],getdata["records"][i]["shop_url"]["value"]);
+    	  }
+    
+    //alert(getdata["records"].length);
+    //alert(getdata["records"][0]["menu"]["value"]);
+    //insertRow()
+    //                    var syukei=JSON.parse(JSON.stringify(data));
+    //                    show_syukei(syukei);
+                        $("#response").html(JSON.stringify(data));
+                    },
+                    error : function(data) {
+    
+                        // Error
+                        alert("error");
+                        alert(JSON.stringify(data));
+                        $("#response").html(JSON.stringify(data));
+                    }
+                });
+        kintone_call_flg = 1;
+//    } else {
+//        alert("no!");
+    }
+}
+function get_weather() {
+    
+    var kintone_url = "http://weather.livedoor.com/forecast/webservice/json/v1?city=270000";
+    
+            $.ajax({
+                type : 'get',
+                url : kintone_url,
+                dataType : 'JSON',
+                scriptCharset: 'utf-8',
+                success : function(data) {
+    
+//            console.log(JSON.stringify(data));
+                var getdata=JSON.parse(JSON.stringify(data));
+//取得した天気予報をセットする
+document.getElementById("weather_title").textContent = " [ "+getdata["forecasts"][0]["image"]["title"]+" ]";
+document.getElementById("weather_img").src = getdata["forecasts"][0]["image"]["url"];
+//                alert(getdata["forecasts"][0]["image"]["url"]);
+//天気予報の値をセット
+document.getElementById('today_weather').value=getdata["forecasts"][0]["image"]["title"];
+document.getElementById('today_weather_long').value=getdata["description"]["text"];
+
+                    $("#response").html(JSON.stringify(data));
+                },
+                error : function(data) {
+    
+                    // Error
+                    alert("error");
+                    alert(JSON.stringify(data));
+                    $("#response").html(JSON.stringify(data));
+                }
+            });
+}
+
+//＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+// テーブル関連
+//＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+/**
+ * 行追加
+ */
+function insertRow(menu,menu_url,shop,shop_url) {
+    // テーブル取得
+    var table = document.getElementById("item_table");
+    // 行を行末に追加
+    var row = table.insertRow(-1);
+    // セルの挿入
+    var cell1 = row.insertCell(-1);
+    var cell2 = row.insertCell(-1);
+    // ボタン用 HTML
+    var menu_link = "<a href='"+menu_url+"'>"+menu+"</a>";
+    var shop_link = "<a href='"+shop_url+"'>"+shop+"</a>";
+ 
+    // 行数取得
+    var row_len = table.rows.length;
+ 
+    // セルの内容入力
+    cell1.innerHTML = menu_link;
+    cell2.innerHTML = shop_link;
+}
+
+function love_sound() {
+    var v = document.getElementById("love");
+    v.play();
+}
+
+function nani_sound() {
+    var v = document.getElementById("nani");
+    v.play();
+}
+    
+//動的に音声合成して、再生させる
+function dynamic_sound(url) {
+    // AudioElement を作成
+    var audio = new Audio();
+    
+    // プリロードを設定する
+    audio.preload = "none";
+    
+    // サウンドファイルまでの URL アドレスを指定
+    audio.src = url;
+    
+    // 読み込みを開始する
+    audio.load();
+    
+    audio.play();
+}
+
+function today_weather_sound(){
+
+    var now_kion = document.getElementById("now_kion").value;
+    var now_shitsudo = document.getElementById("now_shitsudo").value;
+    var kion_sound = "";
+    var shitsudo_sound = "";
+    //気温での発話分岐
+    if (parseInt(now_kion) < 22){
+        kion_sound = "ちょっと寒くない？";
+    } else if (parseInt(now_kion) >= 22 && parseInt(now_kion) <= 26){
+        kion_sound = "涼しいなぁ～。";
+    } else {
+        kion_sound = "ちょっと暑くない？";
+    }
+    //湿度での発話分岐
+    if (parseInt(now_shitsudo) < 30){
+        shitsudo_sound = "カラッカラやわぁ～。";
+    } else if (parseInt(now_shitsudo) >= 30 && parseInt(now_shitsudo) <= 50){
+        shitsudo_sound = "ちょうどエエわぁ～。";
+    } else {
+        shitsudo_sound = "湿度、高いなぁ～。";
+    }
+    
+    //音声合成用URL（ベース）
+    var ai_base_url = "http://webapi.aitalk.jp/webapi/v2/ttsget.php?username=aodhack2017&password=AQPkXPPN&speaker_name=akane_west&text=";
+    //文章構成
+    var hatsuwa1 = "今日の天気は、"+document.getElementById("today_weather").value+"、やでぇ。";
+    var hatsuwa2 = "気温は、"+document.getElementById("now_kion").value+"ど・・・、"+kion_sound;
+    var hatsuwa3 = "湿度は、"+document.getElementById("now_shitsudo").value+"パーセント・・・、"+shitsudo_sound;
+    
+    var ai_url = ai_base_url + hatsuwa1 + hatsuwa2 + hatsuwa3;
+    //動的に音声合成して発話させる
+    dynamic_sound(ai_url);
+
+}
+
+function today_weather_long_sound(){
+    //音声合成用URL（ベース）
+    var ai_base_url = "http://webapi.aitalk.jp/webapi/v2/ttsget.php?username=aodhack2017&password=AQPkXPPN&speaker_name=akane_west&text=";
+    var ai_url = ai_base_url + document.getElementById("today_weather_long").value;
+    //動的に音声合成して発話させる
+    dynamic_sound(ai_url);
+}
+
+</script>
+</head>
+    <body onLoad="netatmo_oauth();">
+    <div align="center">
+        <img src="harukas.png" class="halkas" id="halkas" style="width:60%;" onclick="love_sound();"/><br><br><hr>
+<font size=7>
+    <img src="" class="weather_img" id="weather_img" style="width:100px;" onclick="today_weather_sound();"/>
+    <span id="weather_title"></span>
+    <img src="SD2.png" class="sd" id="sd" style="width:100px;" onclick="today_weather_long_sound();"/>
+    <input type="hidden" id="today_weather" name="today_weather" value="">
+    <input type="hidden" id="today_weather_long" name="today_weather_long" value="">
+    <div id="kion"></div>
+    <div id="shitsudo"></div>
+</font><hr>
+        <img src="meal.jpg" class="meal" id="meal" style="width:60%;" onclick="get_date_kintone();"/>
+        <input type="hidden" id="now_kion" name="now_kion" value="0">
+        <input type="hidden" id="now_shitsudo" name="now_shitsudo" value="0">
+    </div><hr>
+
+<table id="item_table" style="border-style: solid; font-size : 40px; width:100%;" border="1" cellspacing="0" cellpadding="1">
+<tr><td align="center">メニュー</td><td align="center">店舗</td></tr>
+<tbody id="item_table_tbody">
+</tbody>
+</table>
+
+<audio id="love" preload="auto">
+    <source src="love_harukasu.ogg" type="audio/ogg">
+</audio>
+<audio id="nani" preload="auto">
+    <source src="naniku.ogg" type="audio/ogg">
+</audio>
+
+</body>
+</html>

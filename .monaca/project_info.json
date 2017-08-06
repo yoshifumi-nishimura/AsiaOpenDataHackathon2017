@@ -1,0 +1,24 @@
+{
+    "plugins": [
+        "mobi.monaca.plugins.Monaca@3.1.0"
+    ],
+    "framework_version": "3.5",
+    "xcode_version": "8",
+    "cordova_version": "6.5",
+    "plugin_settings": [],
+    "external_plugins": [
+        "cordova-plugin-whitelist@1.3.1",
+        "cordova-plugin-splashscreen@4.0.3",
+        "cordova-custom-config@2.0.3"
+    ],
+    "title-ja": "ハルカス",
+    "title-en": "",
+    "description-ja": "",
+    "description-en": "",
+    "category": "User Template",
+    "platform": [
+        "android",
+        "ios"
+    ],
+    "name": "generated-1501979312-598541fc013eb063593496aa"
+}
